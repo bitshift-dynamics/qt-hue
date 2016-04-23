@@ -4,14 +4,20 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
-
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+QT       += core widgets network
+CONFIG += c++11
 
 TARGET = QtHue
 TEMPLATE = app
 
 
-SOURCES += main.cpp
+SOURCES += main.cpp \
+    qhuelight.cpp \
+    qhuebridge.cpp \
+    qhuebridgemanager.cpp
 
-HEADERS  +=
+HEADERS  += \
+    qhuelight.h \
+    qhuebridge.h \
+    qhuebridgemanager.h \
+    qhueerror.h
