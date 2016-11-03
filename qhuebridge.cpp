@@ -11,6 +11,8 @@
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 
+#include "qhuelight.h"
+
 
 class QHueBridgePrivate : public QObject
 {
@@ -20,9 +22,11 @@ class QHueBridgePrivate : public QObject
 
 public:
         enum HueRequestType {
-                UnknownRequest,
-                CreateUserRequest,
-                GetConfigurationRequest
+            UnknownRequest,
+            CreateUserRequest,
+            GetConfigurationRequest,
+            GetLightsRequest,
+            SetLightState
         };
 
         QNetworkAccessManager* qnam;
@@ -89,7 +93,7 @@ void QHueBridgePrivate::handleReply(QNetworkReply* reply)
 {
         Q_Q(QHueBridge);
 
-
+qDebug() << "reply";
         if (requestQueue.contains(reply) == false) {
                 qCritical() << "Got a reply without a request.";
                 return;
@@ -189,6 +193,12 @@ void QHueBridgePrivate::handleReply(QNetworkReply* reply)
 
                 emit q->configurationUpdated(configuration);
         }
+        else if (requestType == QHueBridgePrivate::GetLightsRequest) {
+            qDebug() << replyData;
+        }
+        else if (requestType == QHueBridgePrivate::SetLightState) {
+            //qDebug() << replyData;
+        }
         else {
               qCritical() << "Failed handling response of"
                           << reply
@@ -282,8 +292,7 @@ QString QHueBridge::deviceName() const
 }
 
 void QHueBridge::createUser(const QString& applicationName,
-                            const QString& deviceName,
-                            const QString& userName)
+                            const QString& deviceName)
 {
         Q_D(QHueBridge);
 
@@ -292,8 +301,6 @@ void QHueBridge::createUser(const QString& applicationName,
         arguments["devicetype"] = QString("%1#%2")
                                   .arg(applicationName)
                                   .arg(deviceName);
-        if (userName.isEmpty() == false)
-                arguments["username"] = userName;
 
 
         // Some data checking agains the API reference.
@@ -301,13 +308,6 @@ void QHueBridge::createUser(const QString& applicationName,
                 qCritical() << "Devicetype too long, max. 40 characters.";
                 return;
         }
-
-        if (userName.length() < 10 || userName.length() > 40) {
-                qCritical() << "Username length invalid, must be between 10 "
-                               "and 40 characters.";
-                return;
-        }
-
 
         QNetworkRequest request(QUrl(QString("http://%1/api")
                                      .arg(ipAddress())));
@@ -330,4 +330,44 @@ void QHueBridge::requestConfiguration()
 
         QNetworkReply* reply = d->qnam->get(request);
         d->requestQueue[reply] = QHueBridgePrivate::GetConfigurationRequest;
+}
+
+void QHueBridge::updateLights()
+{
+    Q_D(QHueBridge);
+
+    QNetworkRequest request(QUrl(QString("http://%1/api/%2/lights")
+                                 .arg(ipAddress())
+                                 .arg(userName())));
+
+    qDebug() << "Sending lights request to" << request.url();
+
+    QNetworkReply* reply = d->qnam->get(request);
+    d->requestQueue[reply] = QHueBridgePrivate::GetLightsRequest;
+}
+
+void QHueBridge::setLight(int id,
+                          quint16 hue,
+                          quint8 saturation,
+                          quint8 brightness,
+                          quint16 duration)
+{
+    Q_D(QHueBridge);
+
+    QNetworkRequest request(QUrl(QString("http://%1/api/%2/lights/%3/state")
+                                 .arg(ipAddress())
+                                 .arg(userName())
+                                 .arg(id)));
+
+    QVariantMap arguments;
+    //arguments["on"] = true;
+    arguments["hue"] = hue;
+    arguments["sat"] = saturation;
+    arguments["bri"] = brightness;
+    arguments["transitiontime"] = duration;
+
+    //qDebug() << "Sending set lights request to" << request.url() << QJsonDocument::fromVariant(arguments).toJson();
+
+    QNetworkReply* reply = d->qnam->put(request, QJsonDocument::fromVariant(arguments).toJson());
+    d->requestQueue[reply] = QHueBridgePrivate::SetLightState;
 }

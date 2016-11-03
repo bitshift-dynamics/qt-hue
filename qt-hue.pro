@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core widgets network
+QT       += core widgets network concurrent
 CONFIG += c++11
 
 TARGET = QtHue

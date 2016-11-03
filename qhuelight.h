@@ -5,10 +5,10 @@
 
 class QHueLight : public QObject
 {
-        Q_OBJECT
+    Q_OBJECT
 
 public:
-        explicit QHueLight(QObject* parent = nullptr);
+    explicit QHueLight(QObject* parent = nullptr);
 };
 
 #endif // QHUELIGHT_H

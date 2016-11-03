@@ -81,9 +81,12 @@ public:
 
 public slots:
         void createUser(const QString& applicationName,
-                        const QString& deviceName,
-                        const QString& userName = QString());
+                        const QString& deviceName);
         void requestConfiguration();
+
+        void updateLights();
+
+        void setLight(int id, quint16 hue, quint8 saturation, quint8 brightness, quint16 duration = 0);
 
 signals:
         void error(const QHueError& error);

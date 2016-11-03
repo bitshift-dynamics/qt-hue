@@ -4,6 +4,8 @@
 
 #include <QtWidgets/QApplication>
 
+#include <QtConcurrent/QtConcurrentRun>
+
 #include "qhuebridgemanager.h"
 
 
@@ -20,7 +22,7 @@ int main(int argc, char** argv)
         isConnected = QObject::connect(&manager,
                                        &QHueBridgeManager::detected,
                                        [](QHueBridge* bridge) {
-                qDebug() << "Detected" << bridge->name();
+                qDebug() << "Detected" << bridge->id();
 
                 bool isConnected = false;
                 Q_UNUSED(isConnected);
@@ -46,12 +48,35 @@ int main(int argc, char** argv)
                 });
 
 
-                //bridge->createUser("hue-test",
-                //                   "alexanders-mbp",
-                //                   "alexandernassian");
+                bridge->updateLights();
 
-                bridge->setUserName("alexandernassian");
-                bridge->setDeviceName("alexanders-mbp");
+                QtConcurrent::run([=]() {
+                    QDateTime start = QDateTime::currentDateTime();
+                    int counter = 0;
+                    QVector<int> lamps;
+                    lamps << 1 << 4 << 5 << 6 << 7 << 8;
+                    bool isFlipped = true;
+                    while (true) {
+                        if (start.msecsTo(QDateTime::currentDateTime()) > 100) {
+                            if (counter == 0)
+                                isFlipped = !isFlipped;
+                            QMetaObject::invokeMethod(bridge,
+                                                      "setLight",
+                                                      Qt::QueuedConnection,
+                                                      Q_ARG(int, lamps[counter]),
+                                                      Q_ARG(quint16, isFlipped ? 50000 : 10000),
+                                                      Q_ARG(quint8, 200),
+                                                      Q_ARG(quint8, 50));
+                            //bridge->setLight(qrand() % 6, qrand() % 50000, 200, 200, 4);
+                            start = QDateTime::currentDateTime();
+
+                            counter++;
+                            if (counter == 6)
+                                counter = 0;
+                        }
+                        //QThread::msleep(1000);
+                    }
+                });
 
                      /* QTimer* t = new QTimer;
                       t->setInterval(100);
